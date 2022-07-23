@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Jul 23 23:05:37 2022
+
+restrive studies from Semantic Scholar
+
+@author: amal
+"""
+import requests
+import json
+import pandas as pd
+import pickle
+import xlsxwriter
+import sys
+
+
+def main():
+
+
+    offset = 0
+    
+    #search query
+    # query ="systematic+reviews+update+text+mining+nlp"
+    query = str(sys.argv[1])
+    query = query.replace(' ','+')
+    # print(query)
+    r = requests.get("https://api.semanticscholar.org/graph/v1/paper/search?query="+query+"&offset=" +str(offset)+"&limit=100&fields=title")
+    json = r.json()
+    
+    #total number of search results
+    total_results =  json['total']
+    n_loop =round(total_results/100)
+    
+    #search results
+    results = []
+    #first 100 records
+    results.append(pd.DataFrame(json['data']))
+    
+    
+    offset += 100
+    i = 0
+    #every loop get 100 records
+    while i < n_loop - 1:
+    
+        r = requests.get("https://api.semanticscholar.org/graph/v1/paper/search?query="+query+"&offset=" +str(offset)+"&limit=100&fields=title")
+        json = r.json()
+    
+        results.append(pd.DataFrame(json['data']))
+        #to get the next 100 results
+        offset += 100
+        i += 1
+        
+    # all records  dataframe  
+    df = pd.concat(results)  
+    df.reset_index(drop=True, inplace=True)
+    # data to pickle file    
+    pickle.dump(df,open('search_results.pkl', 'wb') )
+    # data to cvs file
+    df.to_csv('search_results.csv')
+    
+
+if __name__ == "__main__":
+    main()
